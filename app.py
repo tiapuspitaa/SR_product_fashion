@@ -41,12 +41,6 @@ def load_dataset():
 
 df = load_dataset()
 
-# Display dataset info (Optional for debugging)
-# print("Dataset Information:")
-# print(df.info())
-# print("\nFirst 5 Rows:")
-# print(df.head())
-
 # Step 3: Preprocessing Data
 # Handle missing values
 df['PrimaryColor'] = df['PrimaryColor'].fillna('Unknown')
@@ -54,7 +48,7 @@ df['PrimaryColor'] = df['PrimaryColor'].fillna('Unknown')
 # Normalize text data in 'Description'
 stop_words = set(stopwords.words('english'))
 def preprocess_text(text):
-    text = text.lower()  # Convert to lowercase
+    text = str(text).lower()  # Convert to lowercase
     words = text.split()  # Tokenize
     words = [word for word in words if word not in stop_words]  # Remove stopwords
     return ' '.join(words)
@@ -99,12 +93,29 @@ product_name = st.selectbox("Select a Product Name", df['ProductName'].unique())
 
 # Recommendation Button
 if st.button("Get Recommendations"):
+    # Save recommendations to session state
     recommendations = recommend_products_by_name(product_name, top_n=5)
-    st.write("Recommended Products:")
-    st.dataframe(recommendations)
+    st.session_state.recommendations = recommendations.to_dict('records')
 
-# Step 7: Future Development
-# Potential enhancements:
-# 1. Add user-specific preferences.
-# 2. Optimize similarity calculation for large datasets.
-# 3. Include additional features such as price range filtering.
+# Display recommendations
+if "recommendations" in st.session_state:
+    st.write("### Recommended Products")
+    for index, row in enumerate(st.session_state.recommendations, start=1):  # Add numbering with start=1
+        with st.container():  # Create a container for each recommendation
+            col1, col2 = st.columns([3, 1])
+            col1.write(f"**{index}. {row['ProductName']}**")  # Display the numbered product name in bold
+            if col2.button("Detail", key=f"detail_{index}"):
+                # Save the selected product details to session state
+                st.session_state.selected_product = row
+                st.session_state.selected_index = index
+            
+            # Display details below the relevant product
+            if "selected_index" in st.session_state and st.session_state.selected_index == index:
+                st.write("#### Product Details")
+                product = st.session_state.selected_product
+                st.write(f"**Product ID:** {product['ProductID']}")
+                st.write(f"**Product Name:** {product['ProductName']}")
+                st.write(f"**Brand:** {product['ProductBrand']}")
+                st.write(f"**Gender:** {product['Gender']}")
+                st.write(f"**Primary Color:** {product['PrimaryColor']}")
+                st.write(f"**Description:** {product['Description']}")
