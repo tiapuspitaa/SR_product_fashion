@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -- coding: utf-8 --
 """sr_fashionProduct.ipynb
 # Nama Kelompok :
 ## 1. Tia Puspita Sari (22.12.2481)
@@ -45,6 +45,11 @@ df = load_dataset()
 # Handle missing values
 df['PrimaryColor'] = df['PrimaryColor'].fillna('Unknown')
 
+# Map Gender values to Men, Women, or Unisex (only if mapping is necessary)
+valid_genders = ['Men', 'Women', 'Unisex']
+df['Gender'] = df['Gender'].apply(lambda x: x if x in valid_genders else 'Unisex')  # Default to 'Unisex' if invalid
+
+
 # Normalize text data in 'Description'
 stop_words = set(stopwords.words('english'))
 def preprocess_text(text):
@@ -54,10 +59,6 @@ def preprocess_text(text):
     return ' '.join(words)
 
 df['Description'] = df['Description'].apply(preprocess_text)
-
-# Encode categorical variables
-label_encoder = LabelEncoder()
-df['Gender'] = label_encoder.fit_transform(df['Gender'])
 
 # Step 4: Implement Jaccard Similarity
 # Function to calculate Jaccard Similarity
@@ -94,7 +95,15 @@ product_name = st.selectbox("Select a Product Name", df['ProductName'].unique())
 # Recommendation Button
 if st.button("Get Recommendations"):
     # Save recommendations to session state
+    similarity_scores = compute_similarity_for_product_name(product_name)  # Get similarity scores
     recommendations = recommend_products_by_name(product_name, top_n=5)
+    
+    # Add similarity scores to the recommendations
+    recommendations = recommendations.reset_index()  # Reset index for proper mapping
+    recommendations['Similarity'] = [
+        similarity_scores[i] for i in recommendations.index
+    ]  # Add similarity scores to dataframe
+    
     st.session_state.recommendations = recommendations.to_dict('records')
 
 # Display recommendations
@@ -119,3 +128,4 @@ if "recommendations" in st.session_state:
                 st.write(f"**Gender:** {product['Gender']}")
                 st.write(f"**Primary Color:** {product['PrimaryColor']}")
                 st.write(f"**Description:** {product['Description']}")
+                st.write(f"**Similarity Score:** {product['Similarity']:.2f}")
